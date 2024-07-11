@@ -1,0 +1,71 @@
+ion-spinner {
+  min-width: 10px;
+  min-height: 10px;
+  color: darkgray;
+}
+
+.ion-card-title {
+  font-size: 1.2em !important;
+}
+
+.departure-time {
+  background-color: #121212;
+  color: white;
+  padding: 2px;
+  border-radius: 5px;
+}
+
+.loading {
+  padding: 0px;
+}
+
+.no-delay {
+  background-color: green;
+  color: white;
+  padding: 2px;
+  border-radius: 5px;
+}
+
+.mild-delay {
+  background-color: yellow;
+  color: black;
+  padding: 2px;
+  border-radius: 5px;
+}
+
+.big-delay {
+  background-color: red;
+  color: white;
+  padding: 2px;
+  border-radius: 5px;
+}
+
+.cancelled {
+  background-color: red;
+  color: white;
+  padding: 2px;
+  border-radius: 5px;
+}
+
+.cancel-info {
+  font-size: 0.8em;
+  padding-bottom: 5px;
+}
+
+.platform {
+  background-color: #121212;
+  color: white;
+  padding: 2px;
+  border-radius: 5px;
+}
+
+.service-type-icon {
+  margin-left: 5px;
+  position: relative;
+  top: 2px;
+}
+
+.replacement-bus-service {
+  background-color: #ffff00;
+  color: black;
+}
