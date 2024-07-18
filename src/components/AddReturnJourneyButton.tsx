@@ -1,4 +1,4 @@
-import { Storage } from '@ionic/storage';
+import { getPreferenceJson, setPreferenceJson } from '../lib/preferences';
 import { useEffect, useState } from 'react';
 import { IonButton, IonCol, IonRow } from '@ionic/react';
 
@@ -14,20 +14,15 @@ const AddReturnJourneyButton: React.FC<ContainerProps> = ({ from, to, editMode }
 
     async function addReturnJourney(from: string, to: string) {
         console.log('Adding return journey', to, from);
-        const store = new Storage();
-        await store.create();
-        let journeys = await store.get('journeys');
+        let journeys = await getPreferenceJson('journeys') || [];
         journeys.push({ from: to, to: from });
-        await store.set('journeys', journeys);
+        await setPreferenceJson('journeys', journeys);
         window.location.href = '/home';
     }
 
     async function init() {
-        
         // If there's an existing journey from the origin to the destination, hide the button
-        const store = new Storage();
-        await store.create();
-        let journeys = await store.get('journeys');
+        let journeys = await getPreferenceJson('journeys') || [];
         const journeyExists = journeys.some((journey: any) => journey.to === from && journey.from === to);
 
         // Only if the return journey doesn't already exist, show the button
@@ -36,7 +31,6 @@ const AddReturnJourneyButton: React.FC<ContainerProps> = ({ from, to, editMode }
     }
 
     useEffect(() => {
-    //     console.log('Use effect - add return journey', editMode);
         init();
     }, [editMode]);
 

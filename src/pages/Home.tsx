@@ -1,5 +1,4 @@
 import { Geolocation } from '@capacitor/geolocation';
-import { Storage } from '@ionic/storage';
 import { App } from '@capacitor/app';
 import { useEffect, useState } from 'react';
 
@@ -21,15 +20,12 @@ const Home: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
   const [dataLastUpdated, setDataLastUpdated] = useState(new Date());
 
-  const store = new Storage();
-
   // Reload the page when the app is closed/re-opened
   App.addListener('appStateChange', ({ isActive }) => {
     updateJourneys();
   });
 
   async function init() {
-    await store.create();
     setInitialised(true);
     updateJourneys();
   }
@@ -46,7 +42,6 @@ const Home: React.FC = () => {
     }
     setUpdateInProgress(false);
 
-    // console.log('Journeys', journeys);
     setDataLastUpdated(new Date());
 
     // Repeat every 15 seconds

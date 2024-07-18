@@ -1,14 +1,12 @@
+import { getPreferenceJson, setPreferenceJson } from "../lib/preferences";
 import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonPage, IonTitle, IonToolbar } from "@ionic/react";
-import { Storage } from "@ionic/storage";
 import { informationCircle } from 'ionicons/icons';
-import _ from "lodash";
+import _, { get } from "lodash";
 import { useEffect, useState } from "react";
 import Departures from "../components/Departures";
 import StationPicker from "../components/StationPicker";
 
 import './PlanJourney.css';
-
-const store = new Storage();
 
 const PlanJourney: React.FC = () => {
 
@@ -16,12 +14,8 @@ const PlanJourney: React.FC = () => {
     const [destinationStation, setDestinationStation] = useState<any>({});
     const [doesJourneyAlreadyExist, setDoesJourneyAlreadyExist] = useState(false);
 
-    async function init() {
-        await store.create();
-    }
-
     async function addJourney(addReturnJourney: boolean) {
-        const journeys = await store.get('journeys') || [];
+        const journeys = await getPreferenceJson('journeys') || [];
         const fromCrs = _.get(departureStation, 'crs');
         const toCrs = _.get(destinationStation, 'crs');
         if (fromCrs && toCrs) {
@@ -30,7 +24,7 @@ const PlanJourney: React.FC = () => {
                 journeys.push({ from: toCrs, to: fromCrs });
             }
             console.log('Saving journey', fromCrs, toCrs, journeys);
-            await store.set('journeys', _.uniq(journeys));
+            await setPreferenceJson('journeys', _.uniq(journeys));
         }
         // Redirect to home
         window.location.href = '/home';
@@ -55,7 +49,7 @@ const PlanJourney: React.FC = () => {
         const from = _.get(departureStation, 'crs');
         const to = _.get(station, 'crs');
         if (from && to) {
-            const journeys = await store.get('journeys') || [];
+            const journeys = await getPreferenceJson('journeys') || [];
             journeyAlreadyExists = journeys.some((journey: any) => journey.from === from && journey.to === to);
             console.log('Checking if journey exists', from, to, journeyAlreadyExists, journeys);
         }
@@ -136,8 +130,6 @@ const PlanJourney: React.FC = () => {
     }
 
     useEffect(() => {
-        // console.log('Use effect - add favourite');
-        init();
     }, [departureStation, destinationStation, doesJourneyAlreadyExist]);
 
     return (

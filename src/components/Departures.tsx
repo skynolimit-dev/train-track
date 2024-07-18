@@ -1,4 +1,4 @@
-import { Storage } from '@ionic/storage';
+import { getPreferenceNumber } from '../lib/preferences';
 import { useEffect, useState } from 'react';
 import { IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonRow, IonSpinner } from '@ionic/react';
 import { bus } from 'ionicons/icons';
@@ -52,8 +52,6 @@ const Departures: React.FC<ContainerProps> = ({ from, to, editMode }) => {
   let updateTimeout: any;
 
   async function init() {
-    // console.log('Initialising departures screen', from, to);
-
     updateDepartures();
     setInitialised(true);
   }
@@ -71,9 +69,7 @@ const Departures: React.FC<ContainerProps> = ({ from, to, editMode }) => {
       if (retryCount < 3) {
         // console.log(new Date().toUTCString(), 'Updating departures');
         const apiData = await getTrainTimes(from, to);
-        const store = new Storage();
-        await store.create();
-        const maxDepartures = await store.get('maxDepartures') || 3;
+        const maxDepartures = await getPreferenceNumber('maxDepartures', 3);
         let departures = _.get(apiData, 'departures');
         if (!departures) {
           console.warn(`No departures found from ${from} to ${to} on retry count ${retryCount}`);
@@ -104,7 +100,6 @@ const Departures: React.FC<ContainerProps> = ({ from, to, editMode }) => {
       for (const departure of departures) {
         const serviceUid = _.get(departure, 'serviceUid');
         const runDate = _.get(departure, 'runDate', moment().format('YYYY-MM-DD'));
-        console.log('Updating service', serviceUid, runDate);
         const serviceInfo = await getServiceInfo(serviceUid, runDate);
         const serviceCallingPoints = _.get(serviceInfo, 'locations', []);
         for (const callingPoint of serviceCallingPoints) {

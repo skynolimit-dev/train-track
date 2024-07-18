@@ -1,26 +1,22 @@
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonIcon, IonLabel, IonToggle, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonItem, IonList, IonSelect, IonSelectOption, IonButton } from '@ionic/react';
 import { useEffect, useState } from 'react';
 import { informationCircle } from 'ionicons/icons';
-import { Storage } from '@ionic/storage';
+import { getPreferenceNumber, setPreferenceNumber } from '../lib/preferences';
 import './Preferences.css';
 
-const Preferences: React.FC = () => {
+const PreferencesTab: React.FC = () => {
 
   const [currentMaxDepartures, setCurrentMaxDepartures] = useState(0);
 
   async function init() {
-    const store = new Storage();
-    await store.create();
-    const maxDepartures = await store.get('maxDepartures') || 3;
+    const maxDepartures = await getPreferenceNumber('maxDepartures', 3);
     setCurrentMaxDepartures(maxDepartures);
   }
 
   async function updateMaxDepartures(value: number) {
     console.log('Updating max departures', value);
     setCurrentMaxDepartures(value);
-    const store = new Storage();
-    await store.create();
-    store.set('maxDepartures', value);
+    await setPreferenceNumber('maxDepartures', value);
   }
 
   function goToHomeScreen() {
@@ -101,4 +97,4 @@ const Preferences: React.FC = () => {
   );
 };
 
-export default Preferences;
+export default PreferencesTab;

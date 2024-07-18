@@ -1,4 +1,4 @@
-import { Storage } from '@ionic/storage';
+import { getPreferenceJson, setPreferenceJson } from '../lib/preferences';
 import { useEffect } from 'react';
 
 import { IonButton, IonCol, IonRow } from '@ionic/react';
@@ -14,11 +14,9 @@ const DeleteJourneyButton: React.FC<ContainerProps> = ({ from, to, editMode }) =
 
     async function deleteJourney(from: string, to: string) {
         console.log('Deleting journey', from, to);
-        const store = new Storage();
-        await store.create();
-        const journeys = await store.get('journeys');
+        const journeys = await getPreferenceJson('journeys') || [];
         const updatedJourneys = journeys.filter((journey: any) => journey.from !== from || journey.to !== to);
-        await store.set('journeys', updatedJourneys);
+        await setPreferenceJson('journeys', updatedJourneys);
         window.location.href = '/home';
     }
 

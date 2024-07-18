@@ -59,7 +59,6 @@ const App: React.FC = () => {
 
   async function initApp() {
     console.log('Initialising app');
-    await store.create();
     setAppInitialised(true);
   }
 
