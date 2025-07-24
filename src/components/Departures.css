@@ -4,8 +4,45 @@ ion-spinner {
   color: darkgray;
 }
 
-.ion-card-title {
-  font-size: 1.2em !important;
+ion-fab-button {
+  width: 50px;
+  height: 50px;
+}
+
+.fab-horizontal-center {
+  margin-left: unset;
+  margin-inline-start: -50px !important;
+}
+
+ion-card-content {
+  font-size: 1.1em !important;
+}
+
+ion-card-title {
+  font-size: 1.0em !important;
+}
+
+ion-title.title-large {
+  font-size: 1.4em !important;
+}
+
+/* ion-fab-button {
+  height: 40px;
+  width: 40px;
+} */
+
+/* Ensure header row labels have consistent height */
+ion-row:first-child ion-col {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* Make all departure table content bold */
+ion-card ion-grid ion-row ion-col {
+  font-weight: bold;
 }
 
 .departure-time {
@@ -13,6 +50,8 @@ ion-spinner {
   color: white;
   padding: 2px;
   border-radius: 5px;
+  min-height: 30px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
 }
 
 .loading {
@@ -24,6 +63,8 @@ ion-spinner {
   color: white;
   padding: 2px;
   border-radius: 5px;
+  min-height: 30px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
 }
 
 .mild-delay {
@@ -31,6 +72,8 @@ ion-spinner {
   color: black;
   padding: 2px;
   border-radius: 5px;
+  min-height: 30px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
 }
 
 .big-delay {
@@ -38,6 +81,30 @@ ion-spinner {
   color: white;
   padding: 2px;
   border-radius: 5px;
+  min-height: 30px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+.short-length {
+  background-color: yellow;
+  color: black;
+  padding: 2px;
+  border-radius: 5px;
+  min-height: 30px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+.train-length {
+  background-color: #121212;
+  color: white;
+  padding: 2px;
+  border-radius: 5px;
+  min-height: 30px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+.scheduled-departure-cancelled {
+  text-decoration: line-through;
 }
 
 .cancelled {
@@ -49,14 +116,6 @@ ion-spinner {
 
 .cancel-info {
   font-size: 0.8em;
-  padding-bottom: 5px;
-}
-
-.platform {
-  background-color: #121212;
-  color: white;
-  padding: 2px;
-  border-radius: 5px;
 }
 
 .service-type-icon {
@@ -65,7 +124,62 @@ ion-spinner {
   top: 2px;
 }
 
-.replacement-bus-service {
+.platform-bus {
   background-color: #ffff00;
   color: black;
+  padding: 2px;
+  border-radius: 5px;
+}
+
+.platform-colored {
+  font-weight: bold;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+/* TBC styling to match other elements */
+.platform-train {
+  background-color: #121212;
+  color: white;
+  padding: 2px;
+  border-radius: 5px;
+  height: 30px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+.destination {
+  text-align: left;
+  margin-left: 10px;
+}
+
+.departure-details {
+  font-size: 0.95em;
+  color: #888;
+  font-style: italic;
+  padding: 0px 2px;
+  margin-top: 0px;
+  padding-bottom: 10px;
+}
+
+/* Bus label for merged bus cell */
+.bus-label {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid #ffeaa7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  justify-content: center;
+}
+
+/* For IonGrid, allow bus label to span two columns */
+.bus-label-col {
+  grid-column: span 2;
+}
+
+.strikethrough {
+  text-decoration: line-through;
 }

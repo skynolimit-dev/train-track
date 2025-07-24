@@ -69,7 +69,7 @@ const About: React.FC = () => {
           </IonCardHeader>
           <IonCardContent>
             <ul>
-              <li>Train times data supplied with thanks by <a href='https://www.realtimetrains.co.uk/' target='_blank'>RealTime Trains</a></li>
+              <li>Train departures data courtesy of the <a href='https://raildata.org.uk/dataProduct/P-d81d6eaf-8060-4467-a339-1c833e50cbbe/overview' target='_blank'>National Rail Live Departure Board API</a></li>
               <li>Station data courtesy of <a href='http://www.railwaycodes.org.uk/' target='_blank'>Railway Codes</a></li>
               <li>Image courtesy of <a href='https://unsplash.com/' target='_blank'>Unsplash</a></li>
             </ul>

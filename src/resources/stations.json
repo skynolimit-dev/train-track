@@ -18,12 +18,6 @@
         "latitude": "51.7147"
     },
     {
-        "crs": "ABA",
-        "name": "Aberdare",
-        "longitude": "",
-        "latitude": ""
-    },
-    {
         "crs": "ABC",
         "name": "Altnabreac",
         "longitude": "-3.7054",
@@ -584,8 +578,8 @@
     {
         "crs": "ASD",
         "name": "Ashley Down",
-        "longitude": "",
-        "latitude": ""
+        "longitude": "-2.5766",
+        "latitude": "51.4791"
     },
     {
         "crs": "ASF",
@@ -1350,6 +1344,12 @@
         "latitude": "51.5192"
     },
     {
+        "crs": "BGY",
+        "name": "Balgray",
+        "longitude": "",
+        "latitude": ""
+    },
+    {
         "crs": "BHC",
         "name": "Balloch",
         "longitude": "-4.5835",
@@ -1573,15 +1573,15 @@
     },
     {
         "crs": "BKQ",
-        "name": "Birkenhead Hamilton Square",
-        "longitude": "-3.0140",
-        "latitude": "53.3947"
-    },
-    {
-        "crs": "BKQ",
         "name": "Hamilton Square",
         "longitude": "",
         "latitude": ""
+    },
+    {
+        "crs": "BKQ",
+        "name": "Birkenhead Hamilton Square",
+        "longitude": "-3.0140",
+        "latitude": "53.3947"
     },
     {
         "crs": "BKR",
@@ -1996,6 +1996,12 @@
         "name": "Bow Street",
         "longitude": "-4.0307",
         "latitude": "52.4393"
+    },
+    {
+        "crs": "BPA",
+        "name": "Beaulieu Park",
+        "longitude": "",
+        "latitude": ""
     },
     {
         "crs": "BPB",
@@ -2769,7 +2775,7 @@
         "crs": "CBX",
         "name": "Cameron Bridge",
         "longitude": "-3.0525",
-        "latitude": "55.1891"
+        "latitude": "56.1891"
     },
     {
         "crs": "CBY",
@@ -3697,24 +3703,6 @@
     },
     {
         "crs": "CRS awaited",
-        "name": "Bute Street",
-        "longitude": "",
-        "latitude": ""
-    },
-    {
-        "crs": "CRS awaited",
-        "name": "Henbury",
-        "longitude": "",
-        "latitude": ""
-    },
-    {
-        "crs": "CRS awaited",
-        "name": "Hythe Road",
-        "longitude": "",
-        "latitude": ""
-    },
-    {
-        "crs": "CRS awaited",
         "name": "Okehampton Interchange",
         "longitude": "",
         "latitude": ""
@@ -3751,31 +3739,37 @@
     },
     {
         "crs": "CRS awaited",
-        "name": "North Filton",
+        "name": "Rugby Parkway",
         "longitude": "",
         "latitude": ""
     },
     {
         "crs": "CRS awaited",
-        "name": "Edginswell",
+        "name": "Henbury",
+        "longitude": "",
+        "latitude": ""
+    },
+    {
+        "crs": "CRS awaited",
+        "name": "Hythe Road",
+        "longitude": "",
+        "latitude": ""
+    },
+    {
+        "crs": "CRS awaited",
+        "name": "Bute Street",
+        "longitude": "",
+        "latitude": ""
+    },
+    {
+        "crs": "CRS awaited",
+        "name": "North Filton",
         "longitude": "",
         "latitude": ""
     },
     {
         "crs": "CRS unknown",
         "name": "Wixams",
-        "longitude": "",
-        "latitude": ""
-    },
-    {
-        "crs": "CRS unknown",
-        "name": "Huddersfield Hillhouse",
-        "longitude": "",
-        "latitude": ""
-    },
-    {
-        "crs": "CRS unknown",
-        "name": "Sheffield Magna",
         "longitude": "",
         "latitude": ""
     },
@@ -4201,15 +4195,15 @@
     },
     {
         "crs": "DBG",
-        "name": "Dunbridge",
-        "longitude": "",
-        "latitude": ""
-    },
-    {
-        "crs": "DBG",
         "name": "Mottisfont & Dunbridge",
         "longitude": "-1.5468",
         "latitude": "51.0339"
+    },
+    {
+        "crs": "DBG",
+        "name": "Dunbridge",
+        "longitude": "",
+        "latitude": ""
     },
     {
         "crs": "DBL",
@@ -4998,6 +4992,12 @@
         "latitude": "51.6244"
     },
     {
+        "crs": "EDS",
+        "name": "Edginswell",
+        "longitude": "",
+        "latitude": ""
+    },
+    {
         "crs": "EDW",
         "name": "East Dulwich",
         "longitude": "-0.0804",
@@ -5329,7 +5329,7 @@
     },
     {
         "crs": "EXD",
-        "name": "Exeter St Davids",
+        "name": "Exeter St David's",
         "longitude": "-3.5437",
         "latitude": "50.7292"
     },
@@ -7130,8 +7130,8 @@
     {
         "crs": "HMY",
         "name": "Hairmyres",
-        "longitude": "",
-        "latitude": ""
+        "longitude": "-4.2302",
+        "latitude": "55.7618"
     },
     {
         "crs": "HNA",
@@ -8394,6 +8394,12 @@
         "latitude": "55.6558"
     },
     {
+        "crs": "KWR",
+        "name": "Kingswear (for Dartmouth)",
+        "longitude": "-3.5730",
+        "latitude": "50.3488"
+    },
+    {
         "crs": "KYL",
         "name": "Kyle of Lochalsh",
         "longitude": "-5.7138",
@@ -9366,6 +9372,12 @@
         "latitude": "53.7916"
     },
     {
+        "crs": "MAB",
+        "name": "Tinsley Magna",
+        "longitude": "",
+        "latitude": ""
+    },
+    {
         "crs": "MAC",
         "name": "Macclesfield",
         "longitude": "-2.1221",
@@ -9595,15 +9607,15 @@
     },
     {
         "crs": "MEW",
-        "name": "Maesteg (Ewenny Road)",
-        "longitude": "-3.6490",
-        "latitude": "51.6053"
-    },
-    {
-        "crs": "MEW",
         "name": "Ewenny Road",
         "longitude": "",
         "latitude": ""
+    },
+    {
+        "crs": "MEW",
+        "name": "Maesteg (Ewenny Road)",
+        "longitude": "-3.6490",
+        "latitude": "51.6053"
     },
     {
         "crs": "MEX",
@@ -10736,8 +10748,8 @@
     {
         "crs": "NWH",
         "name": "Newsham",
-        "longitude": "",
-        "latitude": ""
+        "longitude": "-1.5241",
+        "latitude": "55.1030"
     },
     {
         "crs": "NWI",
@@ -11005,7 +11017,7 @@
     },
     {
         "crs": "PAQ",
-        "name": "Parkgate ",
+        "name": "Parkgate",
         "longitude": "-1.3432",
         "latitude": "53.4430"
     },
@@ -11362,6 +11374,12 @@
         "name": "Penychain",
         "longitude": "-4.3386",
         "latitude": "52.9030"
+    },
+    {
+        "crs": "PNC",
+        "name": "Butlins Penychain",
+        "longitude": "",
+        "latitude": ""
     },
     {
         "crs": "PNE",
@@ -12624,6 +12642,12 @@
         "latitude": "54.2796"
     },
     {
+        "crs": "SCE",
+        "name": "Surrey Canal Road",
+        "longitude": "",
+        "latitude": ""
+    },
+    {
         "crs": "SCF",
         "name": "Stechford",
         "longitude": "-1.8110",
@@ -12812,8 +12836,8 @@
     {
         "crs": "SEJ",
         "name": "Seaton Delaval",
-        "longitude": "",
-        "latitude": ""
+        "longitude": "-1.5381",
+        "latitude": "55.0748"
     },
     {
         "crs": "SEL",
@@ -13087,7 +13111,7 @@
     },
     {
         "crs": "SIH",
-        "name": "St Helier (Surrey)",
+        "name": "St Helier (London)",
         "longitude": "-0.1985",
         "latitude": "51.3900"
     },
@@ -14821,7 +14845,7 @@
     },
     {
         "crs": "UNI",
-        "name": "University (Birmingham)\n",
+        "name": "University (Birmingham)",
         "longitude": "-1.9369",
         "latitude": "52.4512"
     },
@@ -14886,10 +14910,28 @@
         "latitude": "51.3074"
     },
     {
+        "crs": "VAL",
+        "name": "Valley",
+        "longitude": "-4.5635",
+        "latitude": "53.2817"
+    },
+    {
         "crs": "VIC",
         "name": "London Victoria",
         "longitude": "-0.1442",
         "latitude": "51.4951"
+    },
+    {
+        "crs": "VIR",
+        "name": "Virginia Water",
+        "longitude": "-0.5621",
+        "latitude": "51.4020"
+    },
+    {
+        "crs": "VXH",
+        "name": "Vauxhall",
+        "longitude": "-0.1229",
+        "latitude": "51.4859"
     },
     {
         "crs": "WAC",
@@ -15420,8 +15462,8 @@
         "latitude": "51.6340"
     },
     {
-        "crs": "WIJ",
-        "name": "Willesden Junction\n",
+        "crs": "WIJ\n also WJH and WJL",
+        "name": " ",
         "longitude": "-0.2435\n-0.2446",
         "latitude": "51.5320\n51.5324"
     },
@@ -15734,8 +15776,8 @@
     {
         "crs": "WNO",
         "name": "Winslow",
-        "longitude": "",
-        "latitude": ""
+        "longitude": "-0.8869",
+        "latitude": "51.9482"
     },
     {
         "crs": "WNP",
@@ -16212,6 +16254,12 @@
         "latitude": "52.3800"
     },
     {
+        "crs": "XCB",
+        "name": "Aberdare",
+        "longitude": "-3.4390",
+        "latitude": "51.7135"
+    },
+    {
         "crs": "XFI",
         "name": "Filton",
         "longitude": "-2.5612",
@@ -16344,46 +16392,40 @@
         "latitude": "51.4588"
     },
     {
+        "crs": "n/a",
+        "name": "Huddersfield Hillhouse",
+        "longitude": "",
+        "latitude": ""
+    },
+    {
         "crs": "no CRS",
         "name": "Fratton Staff Halt",
         "longitude": "-1.0739",
         "latitude": "50.7961"
     },
     {
-        "crs": "no CRS?",
-        "name": "Beeston Castle & Tarporley",
-        "longitude": "-2.6688",
-        "latitude": "53.1339"
+        "crs": "no CRS",
+        "name": "Long Marston",
+        "longitude": "-1.7722",
+        "latitude": "52.1285"
     },
     {
         "crs": "no CRS?",
-        "name": "Brayton",
-        "longitude": "-3.2990",
-        "latitude": "54.7808"
+        "name": "Oxford Science Park",
+        "longitude": "-1.2157",
+        "latitude": "51.7181"
     },
     {
         "crs": "no CRS?",
-        "name": "Calveley",
-        "longitude": "-2.6113",
-        "latitude": "53.1247"
+        "name": "Turton & Edgworth",
+        "longitude": "-2.4096",
+        "latitude": "53.6360"
     },
     {
         "crs": "no CRS?",
-        "name": "Cefn Onn",
-        "longitude": "-3.1852",
-        "latitude": "51.5506"
-    },
-    {
-        "crs": "no CRS?",
-        "name": "Cwmcarn",
-        "longitude": "-3.1335",
-        "latitude": "51.6362"
-    },
-    {
-        "crs": "no CRS?",
-        "name": "Daresbury",
-        "longitude": "-2.6347",
-        "latitude": "53.3543"
+        "name": "Eskmeals",
+        "longitude": "-3.4048",
+        "latitude": "54.3339"
     },
     {
         "crs": "no CRS?",
@@ -16399,6 +16441,12 @@
     },
     {
         "crs": "no CRS?",
+        "name": "Radway Green",
+        "longitude": "-2.3336",
+        "latitude": "53.0859"
+    },
+    {
+        "crs": "no CRS?",
         "name": "Midge Hall",
         "longitude": "-2.7438",
         "latitude": "53.7029"
@@ -16408,6 +16456,12 @@
         "name": "Mottram Staff Halt",
         "longitude": "-2.0165",
         "latitude": "53.4410"
+    },
+    {
+        "crs": "no CRS?",
+        "name": "Daresbury",
+        "longitude": "-2.6347",
+        "latitude": "53.3543"
     },
     {
         "crs": "no CRS?",
@@ -16429,26 +16483,32 @@
     },
     {
         "crs": "no CRS?",
-        "name": "Oxford Science Park",
-        "longitude": "-1.2157",
-        "latitude": "51.7181"
+        "name": "Calveley",
+        "longitude": "-2.6113",
+        "latitude": "53.1247"
     },
     {
         "crs": "no CRS?",
-        "name": "Turton & Edgworth",
-        "longitude": "-2.4096",
-        "latitude": "53.6360"
+        "name": "Cefn Onn",
+        "longitude": "-3.1852",
+        "latitude": "51.5506"
     },
     {
         "crs": "no CRS?",
-        "name": "Radway Green",
-        "longitude": "-2.3336",
-        "latitude": "53.0859"
+        "name": "Cwmcarn",
+        "longitude": "-3.1335",
+        "latitude": "51.6362"
     },
     {
         "crs": "no CRS?",
-        "name": "Eskmeals",
-        "longitude": "-3.4048",
-        "latitude": "54.3339"
+        "name": "Beeston Castle & Tarporley",
+        "longitude": "-2.6688",
+        "latitude": "53.1339"
+    },
+    {
+        "crs": "no CRS?",
+        "name": "Brayton",
+        "longitude": "-3.2990",
+        "latitude": "54.7808"
     }
 ]

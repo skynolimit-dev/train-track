@@ -1,4 +1,3 @@
-import { Geolocation } from '@capacitor/geolocation';
 import { App } from '@capacitor/app';
 import { useEffect, useState } from 'react';
 
@@ -7,12 +6,15 @@ import { close, pencil } from 'ionicons/icons';
 import { useRef } from 'react';
 import Departures from '../components/Departures';
 import TrainImage from '../components/TrainImage';
+import { getCurrentLocation } from '../lib/location';
 import { getStationCoordinatesFromCrs } from '../lib/stations';
 import { getJourneys } from '../lib/user';
 import _ from 'lodash';
 import './Home.css';
 
 const Home: React.FC = () => {
+
+  let updateTimeout: any;
 
   const [initialised, setInitialised] = useState(false);
   const [journeys, setJourneys] = useState<{ from: string, to: string }[]>([]);
@@ -32,32 +34,27 @@ const Home: React.FC = () => {
 
   async function updateJourneys() {
     setUpdateInProgress(true);
-    // Get the latest journeys and the current location in parallel
-    const [updatedJourneys, location] = await Promise.all([getJourneys(), getCurrentLocation()]);
+    
+    // First get and set the journeys
+    const updatedJourneys = await getJourneys();
+    setJourneys(updatedJourneys);
+    
+    // Then get location and update journeys order if location is available
+    const location = await getCurrentLocation();
     const journeysOrdered = await orderJourneysByProximityToCurrentLocation(updatedJourneys, location);
     if (journeysOrdered && journeysOrdered.length > 0) {
       setJourneys(journeysOrdered);
-    } else {
-      setJourneys(updatedJourneys);
     }
+    
     setUpdateInProgress(false);
-
     setDataLastUpdated(new Date());
 
     // Repeat every 15 seconds
-    setTimeout(() => {
+    if (updateTimeout)
+      clearTimeout(updateTimeout);
+    updateTimeout = setTimeout(() => {
       updateJourneys();
     }, 15000);
-  }
-
-  async function getCurrentLocation() {
-    try {
-      const location = await Geolocation.getCurrentPosition({ timeout: 1000 });
-      return location;
-    } catch (error) {
-      console.log('Error getting current location', error);
-      return null;
-    }
   }
 
   // Order the journeys by proximity to the current location

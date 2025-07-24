@@ -12,12 +12,12 @@ const AddReturnJourneyButton: React.FC<ContainerProps> = ({ from, to, editMode }
 
     const [showButton, setShowButton] = useState(false);
 
-    async function addReturnJourney(from: string, to: string) {
-        console.log('Adding return journey', to, from);
+    async function addReturnJourney() {
         let journeys = await getPreferenceJson('journeys') || [];
-        journeys.push({ from: to, to: from });
+        journeys.push({ from: to, to: from, favorite: false });
         await setPreferenceJson('journeys', journeys);
-        window.location.href = '/home';
+        window.dispatchEvent(new CustomEvent('journeysChanged'));
+        window.location.reload();
     }
 
     async function init() {
@@ -39,7 +39,7 @@ const AddReturnJourneyButton: React.FC<ContainerProps> = ({ from, to, editMode }
         return (
             <IonRow>
                 <IonCol className='ion-text-center'>
-                    <IonButton color='secondary' expand='block' className='ion-margin-top' onClick={() => addReturnJourney(from, to)}>Add return journey</IonButton>
+                    <IonButton color='secondary' expand='block' className='ion-margin-top' onClick={() => addReturnJourney()}>Add return journey</IonButton>
                 </IonCol>
             </IonRow>
         )

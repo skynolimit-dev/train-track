@@ -1,33 +1,38 @@
-import { getPreferenceNumber } from '../lib/preferences';
+import { getPreferenceNumber, getPreferenceBoolean } from '../lib/preferences';
 import { useEffect, useState } from 'react';
-import { IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonRow, IonSpinner } from '@ionic/react';
-import { bus } from 'ionicons/icons';
-import { getStationNameFromCrs } from '../lib/stations';
-import { getServiceInfo, getTrainTimes } from '../lib/trains';
+import { IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonRow, IonSpinner, IonAlert } from '@ionic/react';
+import { bus, star, starOutline } from 'ionicons/icons';
+import { getStationNameFromCrs, getPlatformColor } from '../lib/stations';
+import { getTrainTimes } from '../lib/trains';
 import DeleteJourneyButton from './DeleteJourneyButton';
 import AddReturnJourneyButton from './AddReturnJourneyButton';
+import ToggleFavoriteButton from './ToggleFavoriteButton';
 import './Departures.css';
 import NoDeparturesFound from './NoDeparturesFound';
-import _ from 'lodash';
+import _, { get } from 'lodash';
 import moment from 'moment';
+import React from 'react';
+import { toggleJourneyFavorite } from '../lib/user';
+import { hasReturnLeg, toggleJourneyFavoriteBothWays } from '../lib/user';
 
 interface ContainerProps {
   from: string;
   to: string;
   editMode?: boolean;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
 // Set lastDeparturesUpdateTime to 5 minutes ago to force an update on first load
 let lastDeparturesUpdateTime = moment().subtract(5, 'minutes');
-let lastArrivalsUpdateTimes = {};
 
 // Calculates the difference in minutes between the two times
 // Note that the times are in the format "HH:MM"
-function getDelayInMinutes(bookedTime: any, realTime: any) {
+function getDelayInMinutes(scheduledDepartureTime: any, estimatedDepartureTime: any) {
   // Use moment to calculate the difference in minutes
-  bookedTime = moment(bookedTime, 'HH:mm');
-  realTime = moment(realTime, 'HH:mm');
-  const diff = realTime.diff(bookedTime, 'minutes');
+  scheduledDepartureTime = moment(scheduledDepartureTime, 'HH:mm');
+  estimatedDepartureTime = moment(estimatedDepartureTime, 'HH:mm');
+  const diff = estimatedDepartureTime.diff(scheduledDepartureTime, 'minutes');
   return diff;
 }
 
@@ -42,41 +47,118 @@ function getDelayClass(delay: number) {
   }
 }
 
-const Departures: React.FC<ContainerProps> = ({ from, to, editMode }) => {
+// Returns a class name based on the platform
+function getPlatformClass(platform: string) {
+  if (platform === 'BUS') {
+    return 'platform-bus';
+  } else {
+    return 'platform-train';
+  }
+}
 
+// Returns a label based on the platform - show a bus icon if the platform is "BUS"
+function getPlatformLabel(platform: string) {
+  if (platform === 'BUS') {
+    return (
+      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+        <IonIcon icon={bus} style={{ fontSize: '14px' }} />
+        Bus
+      </span>
+    );
+  } else if (platform && platform.length > 0) {
+    return platform;
+  } else {
+    return 'TBC';
+  }
+}
+
+// Format destination and route information
+function formatDestinationAndRoute(departure: any) {
+  // Handle both old format (destination.locationName) and new format (destination[0].locationName)
+  const destination = _.get(departure, 'destination.locationName') || 
+                     (_.get(departure, 'destination[0].locationName', ''));
+  const via = _.get(departure, 'destination.via') || 
+              (_.get(departure, 'destination[0].via', ''));
+  
+  if (via && via.length > 0) {
+    return `${destination} ${via}`;
+  } else {
+    return destination;
+  }
+}
+
+// Format departure details row
+function formatDepartureDetails(departure: any) {
+  const scheduledTime = _.get(departure, 'departure_time.scheduled', '');
+  const destinationRoute = formatDestinationAndRoute(departure);
+  const delayReason = _.get(departure, 'delayReason', '');
+  const operator = _.get(departure, 'operator', '');
+  
+  let details = `${scheduledTime} to ${destinationRoute}`;
+  
+  if (delayReason && delayReason.length > 0) {
+    details += ` - ${delayReason}`;
+  }
+  
+  if (operator && operator.length > 0) {
+    details += ` (${operator})`;
+  }
+  
+  return details;
+}
+
+const Departures: React.FC<ContainerProps> = ({ from, to, editMode, isFavorite = false, onToggleFavorite }) => {
+
+  const [departures, setDepartures] = useState<any[]>([]);
   const [initialised, setInitialised] = useState(false);
-  const [departures, setDepartures] = useState([]);
-  const [arrivals, setArrivals] = useState<{ gbttBookedArrival: string, realtimeArrival: string }[]>([]);
+  const [platformColorEnabled, setPlatformColorEnabled] = useState(false);
+  const [highlightShortTrainLength, setHighlightShortTrainLength] = useState(4);
+  const [highlightShortTrainsEnabled, setHighlightShortTrainsEnabled] = useState(true);
+  const [showRemoveFavoriteAlert, setShowRemoveFavoriteAlert] = useState(false);
+  const [showAddFavoriteAlert, setShowAddFavoriteAlert] = useState(false);
+  const [showBothLegsAlert, setShowBothLegsAlert] = useState<null | 'add' | 'remove'>(null);
+  const [returnLegExists, setReturnLegExists] = useState(false);
   const headerRowKey = `${from}-${to}-header`;
 
   let updateTimeout: any;
 
+  // Returns a class name based on the train length
+  function getTrainLengthClass(length: number) {
+    if (highlightShortTrainsEnabled && length > 0 && length <= highlightShortTrainLength) {
+      return 'short-length';
+    } else {
+      return 'train-length';
+    }
+  }
+
   async function init() {
+    const platformColor = await getPreferenceBoolean('platformColourEnabled', false);
+    setPlatformColorEnabled(platformColor);
+    const highlightLength = await getPreferenceNumber('highlightShortTrainLength', 4);
+    setHighlightShortTrainLength(highlightLength);
+    const highlightShortTrainsEnabled = await getPreferenceBoolean('highlightShortTrainsEnabled', true);
+    setHighlightShortTrainsEnabled(highlightShortTrainsEnabled);
     updateDepartures();
     setInitialised(true);
   }
 
   async function updateDepartures(retryCount = 0) {
-    // If the last arrivals update is within the last 5 minutes, don't update again
     if (lastDeparturesUpdateTime && moment().diff(lastDeparturesUpdateTime, 'seconds') < 10) {
-      console.log('Skipping departures update');
       return;
     }
     else {
-
-      // console.log('Updating departures', from, to, retryCount);
-
       if (retryCount < 3) {
-        // console.log(new Date().toUTCString(), 'Updating departures');
         const apiData = await getTrainTimes(from, to);
         const maxDepartures = await getPreferenceNumber('maxDepartures', 3);
-        let departures = _.get(apiData, 'departures');
+        
+        // Handle both old 'departures' format and new 'trainServices' format
+        let departures = _.get(apiData, 'departures') || _.get(apiData, 'trainServices');
+        
         if (!departures) {
           console.warn(`No departures found from ${from} to ${to} on retry count ${retryCount}`);
           updateDepartures(retryCount + 1);
         } else {
           departures = departures.slice(0, maxDepartures);
-          updateArrivals(departures, from, to);
           setDepartures(departures);
         }
       }
@@ -90,191 +172,348 @@ const Departures: React.FC<ContainerProps> = ({ from, to, editMode }) => {
     }, 10000);
   }
 
-  // Updates the arrival times for the respective departures at the destination station ("toCrs")
-  async function updateArrivals(departures: any, from: string, to: string) {
-    // console.log('Updating arrivals', from, to);
-    _.set(lastArrivalsUpdateTimes, `${from}-${to}`, moment());
-
-    if (departures && departures.length > 0) {
-      let arrivals = [];
-      for (const departure of departures) {
-        const serviceUid = _.get(departure, 'serviceUid');
-        const runDate = _.get(departure, 'runDate', moment().format('YYYY-MM-DD'));
-        const serviceInfo = await getServiceInfo(serviceUid, runDate);
-        const serviceCallingPoints = _.get(serviceInfo, 'locations', []);
-        for (const callingPoint of serviceCallingPoints) {
-          if (callingPoint.crs === to) {
-            // console.log('Arrival time', callingPoint);
-            arrivals.push({
-              gbttBookedArrival: callingPoint.gbttBookedArrival,
-              realtimeArrival: callingPoint.realtimeArrival
-            });
-          }
-        }
-      }
-      setArrivals(arrivals);
-    }
-
-  }
-
   // Show the departures
-  function showDepartures(departures: any[]) {
+  function showDepartures(departures: any[], to: string) {
     if (departures && departures.length > 0) {
-      return departures.map((departure: any, index: number) => (
-        { ...showDeparture(departure, index) }
-      ));
+      // Sort by estimated departure time (or scheduled if estimated is missing), handling next-day rollovers
+      const now = moment();
+      const today = now.format('YYYY-MM-DD');
+      const sorted = [...departures].sort((a, b) => {
+        // For both cancelled and non-cancelled, use estimated if present, otherwise scheduled
+        const getSortTime = (dep: any) => {
+          // If cancelled, still use estimated if present, otherwise scheduled
+          let t = _.get(dep, 'departure_time.estimated');
+          if (!t || t.toLowerCase() === 'cancelled' || t.toLowerCase() === 'unknown') {
+            t = _.get(dep, 'departure_time.scheduled') || _.get(dep, 'etd') || _.get(dep, 'std');
+          }
+          return t;
+        };
+        const aTimeRaw = getSortTime(a);
+        const bTimeRaw = getSortTime(b);
+        let aTime = moment(`${today} ${aTimeRaw}`, 'YYYY-MM-DD HH:mm');
+        let bTime = moment(`${today} ${bTimeRaw}`, 'YYYY-MM-DD HH:mm');
+        // If aTime is before now by more than 6 hours, treat as next day
+        if (aTime.isBefore(now) && now.diff(aTime, 'hours') > 6) {
+          aTime.add(1, 'day');
+        }
+        if (bTime.isBefore(now) && now.diff(bTime, 'hours') > 6) {
+          bTime.add(1, 'day');
+        }
+        return aTime.diff(bTime);
+      });
+      const showDestination = !to || to.length === 0;
+      return sorted.map((departure: any, index: number) => {
+        const scheduledDeparture = _.get(departure, 'departure_time.scheduled') || _.get(departure, 'std', '');
+        const key = `${departure.serviceID || ''}-${scheduledDeparture}-${index}`;
+        return (
+          <React.Fragment key={key}>
+            {showDeparture(departure, index, showDestination)}
+          </React.Fragment>
+        );
+      });
     }
   }
 
-  // Get the arrival time for the specified departure by index
-  function getArrival(index: number, arrivalDelayInMinutes: number = 0) {
-    const arrival = _.get(arrivals[index], 'realtimeArrival');
-    if (arrival) {
-      return (
-        <div className={getDelayClass(arrivalDelayInMinutes)}>
-          {formatTime(arrival)}
-        </div>
-      );
+  function showDeparture(departure: any, index: number, showDestination: boolean) {
+    const estimatedDeparture = _.get(departure, 'departure_time.estimated');
+
+    if (departure.isCancelled) {
+      return showDepartureCancelled(departure, index, showDestination);
+    }
+    else if (estimatedDeparture) {
+      return showDepartureRealTimeActivated(departure, index, showDestination);
     }
     else {
+      return showDepartureRealTimeUnavailable(departure, index, showDestination);
+    }
+  }
+
+  function showDepartureCancelled(departure: any, index: number, showDestination: boolean) {
+    const scheduledDeparture = _.get(departure, 'departure_time.scheduled') || _.get(departure, 'std', '');
+    let estimatedDeparture = _.get(departure, 'departure_time.estimated');
+    // If estimated is 'Cancelled' or 'Unknown', fall back to scheduled
+    if (!estimatedDeparture || estimatedDeparture.toLowerCase() === 'cancelled' || estimatedDeparture.toLowerCase() === 'unknown') {
+      estimatedDeparture = null;
+    }
+    const timeLabel = estimatedDeparture || scheduledDeparture;
+    const rowKey = `${departure.serviceID}-${scheduledDeparture}-${index}`;
+    const rowKeyInfo = `${rowKey}-info`;
+    const detailsRowKey = `${rowKey}-details`;
+
+    // For planned journeys, where a destination is specified
+    if (!showDestination) {
       return (
-        <div className='loading'>
-          <IonSpinner name='lines-sharp-small'></IonSpinner>
-        </div>
+        <>
+          <IonRow key={rowKey}>
+            <IonCol size='4' className='ion-text-center'>
+              <div className='cancelled'>
+                <span className='strikethrough'>{timeLabel}</span>
+              </div>
+            </IonCol>
+            <IonCol className="ion-text-center">
+              <div className='cancelled'>
+                Cancelled
+              </div>
+            </IonCol>
+          </IonRow>
+
+          <IonRow key={rowKeyInfo}>
+            <IonCol size='12' className='ion-text-center'>
+              <div className='cancel-info'>
+                Cancellation reason: {departure.cancelReason}
+              </div>
+            </IonCol>
+          </IonRow>
+
+          <IonRow key={detailsRowKey}>
+            <IonCol size='12' className='ion-text-center'>
+              <div className='departure-details'>
+                {formatDepartureDetails(departure)}
+              </div>
+            </IonCol>
+          </IonRow>
+        </>
       )
     }
-
-  }
-
-  function showDeparture(departure: any, index: number) {
-    const realTimeDeparture = _.get(departure, 'locationDetail.realtimeDeparture');
-
-    if (departure.locationDetail.cancelReasonCode) {
-      return showDepartureCancelled(departure, index);
-    }
-    else if (realTimeDeparture) {
-      return showDepartureRealTimeActivated(departure, index);
-    }
+    // For nearby station departures, where no destination is specified
     else {
-      return showDepartureRealTimeUnavailable(departure, index);
+      return (
+        <>
+          <IonRow key={rowKey}>
+            <IonCol className='ion-text-center'>
+              <div className='cancelled'>
+                <span className='strikethrough'>{timeLabel}</span>
+              </div>
+            </IonCol>
+            <IonCol className="ion-text-center">
+              <div className='destination'>
+                {_.get(departure, 'destination.locationName') || _.get(departure, 'destination[0].locationName', '')}
+              </div>
+            </IonCol>
+            <IonCol className="ion-text-center">
+              <div className='cancelled'>
+                Cancelled
+              </div>
+            </IonCol>
+          </IonRow>
+
+          <IonRow key={rowKeyInfo}>
+            <IonCol size='12' className='ion-text-center'>
+              <div className='cancel-info'>
+                Cancellation reason: {departure.cancelReason}
+              </div>
+            </IonCol>
+          </IonRow>
+
+          <IonRow key={detailsRowKey}>
+            <IonCol size='12' className='ion-text-center'>
+              <div className='departure-details'>
+                {formatDepartureDetails(departure)}
+              </div>
+            </IonCol>
+          </IonRow>
+        </>
+      )
     }
-  }
-
-  function showDepartureCancelled(departure: any, index: number) {
-    const bookedDeparture = _.get(departure, 'locationDetail.gbttBookedDeparture');
-    const rowKey = `${departure.serviceUid}-${departure.locationDetail.crs}-${bookedDeparture}-${index}`;
-    const rowKeyInfo = `${rowKey}-info`;
-    return (
-      <>
-        <IonRow key={rowKey}>
-          <IonCol size='3' className='ion-text-center'>
-            <div className='cancelled'>
-              {formatTime(bookedDeparture)}
-            </div>
-          </IonCol>
-          <IonCol className="ion-text-center">
-            <div className='cancelled'>
-              Cancelled
-            </div>
-          </IonCol>
-        </IonRow>
-
-        <IonRow key={rowKeyInfo}>
-          <IonCol size='12' className='ion-text-center'>
-            <div className='cancel-info'>
-              Cancellation reason: {departure.locationDetail.cancelReasonLongText}
-            </div>
-          </IonCol>
-        </IonRow>
-      </>
-    )
   }
 
   // Show the departure when real-time data is available
-  function showDepartureRealTimeActivated(departure: any, index: number) {
+  function showDepartureRealTimeActivated(departure: any, index: number, showDestination: boolean) {
 
     // console.log('Showing departure', departure, index);
 
-    // Get scheduled and actual departure times
-    const bookedDeparture = _.get(departure, 'locationDetail.gbttBookedDeparture');
-    const realTimeDeparture = _.get(departure, 'locationDetail.realtimeDeparture', bookedDeparture);
+    // Get scheduled and actual departure times - handle both old and new formats
+    const scheduledDeparture = _.get(departure, 'departure_time.scheduled') || _.get(departure, 'std', '');
+    let estimatedDeparture = _.get(departure, 'departure_time.estimated') || _.get(departure, 'etd', scheduledDeparture);
 
-    // Get scheduled and actual arrival times
-    const bookedArrival = _.get(arrivals[index], 'gbttBookedArrival');
-    const realTimeArrival = _.get(arrivals[index], 'realtimeArrival', bookedArrival);
-
-    let platform = _.get(departure, 'locationDetail.platform');
+    let platform = _.get(departure, 'platform');
     platform = platform && platform.length > 0 ? platform : 'TBC';
 
-    const departureDelayInMinutes = getDelayInMinutes(bookedDeparture, realTimeDeparture);
-    const arrivalDelayInMinutes = getDelayInMinutes(bookedArrival, realTimeArrival);
+    const departureDelayInMinutes = estimatedDeparture.toLowerCase() !== 'on time' ? getDelayInMinutes(scheduledDeparture, estimatedDeparture) : 0;
 
-    const rowKey = `${departure.serviceUid}-${departure.locationDetail.crs}-${bookedDeparture}-${index}`;
+    const rowKey = `${departure.serviceID}-${scheduledDeparture}-${index}`;
+    const detailsRowKey = `${rowKey}-details`;
 
-    return (
-      <IonRow key={rowKey}>
-        <IonCol className='ion-text-center'>
-          <div className={getDelayClass(departureDelayInMinutes)}>
-            {formatTime(realTimeDeparture)}
-          </div>
-        </IonCol>
-        <IonCol className="ion-text-center">
-          <div className={getDelayClass(departureDelayInMinutes)}>
-            {departureDelayInMinutes > 0 ? `+${departureDelayInMinutes}` : departureDelayInMinutes}
-          </div>
-        </IonCol>
-        <IonCol className='ion-text-center'>
-          {getArrival(index, arrivalDelayInMinutes)}
-        </IonCol>
-        <IonCol className='ion-text-center'>
-          <div className='platform'>
-            {platform}
-          </div>
-        </IonCol>
-      </IonRow>
-    )
+    // For planned journeys, where a destination is specified
+    if (!showDestination) {
+      const isBus = departure.serviceType === 'bus' || _.get(departure, 'platform') === 'BUS';
+      return (
+        <>
+          <IonRow key={rowKey}>
+            <IonCol className='ion-text-center'>
+              <div className={getDelayClass(departureDelayInMinutes)}>
+                {estimatedDeparture}
+              </div>
+            </IonCol>
+            {isBus ? (
+              <IonCol size='8' className='ion-text-center bus-label-col'>
+                <div className='bus-label'>
+                  <IonIcon icon={bus} style={{ fontSize: '16px' }} />
+                  Bus
+                </div>
+              </IonCol>
+            ) : (
+              <>
+                <IonCol className="ion-text-center">
+                  <div className={getTrainLengthClass(departure.length)}>
+                    {departure.length > 0 ? departure.length : 'TBC'}
+                  </div>
+                </IonCol>
+                <IonCol className='ion-text-center'>
+                  <div className={getPlatformClassWithColor(departure.platform)} style={getPlatformStyle(departure.platform)}>
+                    {getPlatformLabel(departure.platform)}
+                  </div>
+                </IonCol>
+              </>
+            )}
+          </IonRow>
+          <IonRow key={detailsRowKey}>
+            <IonCol size='12' className='ion-text-center'>
+              <div className='departure-details'>
+                {formatDepartureDetails(departure)}
+              </div>
+            </IonCol>
+          </IonRow>
+        </>
+      )
+    }
+    // For nearby station departures, where no destination is specified
+    else {
+      const isBus = departure.serviceType === 'bus' || _.get(departure, 'platform') === 'BUS';
+      return (
+        <>
+          <IonRow key={rowKey}>
+            <IonCol size='4' className='ion-text-center'>
+              <div className={getDelayClass(departureDelayInMinutes)}>
+                {estimatedDeparture}
+              </div>
+            </IonCol>
+            <IonCol className='destination'>
+              {_.get(departure, 'destination.locationName') || _.get(departure, 'destination[0].locationName', '')}
+            </IonCol>
+            {isBus ? (
+              <IonCol size='8' className='ion-text-center bus-label-col'>
+                <div className='bus-label'>
+                  <IonIcon icon={bus} style={{ fontSize: '16px' }} />
+                  Bus
+                </div>
+              </IonCol>
+            ) : (
+              <IonCol size='3' className='ion-text-center'>
+                <div className={getPlatformClassWithColor(departure.platform)} style={getPlatformStyle(departure.platform)}>
+                  {getPlatformLabel(departure.platform)}
+                </div>
+              </IonCol>
+            )}
+          </IonRow>
+          <IonRow key={detailsRowKey}>
+            <IonCol size='12' className='ion-text-center'>
+              <div className='departure-details'>
+                {formatDepartureDetails(departure)}
+              </div>
+            </IonCol>
+          </IonRow>
+        </>
+      )
+    }
   }
 
   // Show the departure when real-time data is unavailable, e.g. a replacement bus service is in operation
-  function showDepartureRealTimeUnavailable(departure: any, index: number) {
+  function showDepartureRealTimeUnavailable(departure: any, index: number, showDestination: boolean) {
 
     // console.log('Showing departure', departure, index);
 
-    // Get the booked departure time
-    const bookedDeparture = _.get(departure, 'locationDetail.gbttBookedDeparture');
+    // Get the booked departure time - handle both old and new formats
+    const scheduledDeparture = _.get(departure, 'departure_time.scheduled') || _.get(departure, 'std', '');
 
-    // Get the booked arrival time
-    const bookedArrival = _.get(departure, 'locationDetail.destination[0].publicTime', 'No info');
-
-    let platform = _.get(departure, 'locationDetail.platform');
+    let platform = _.get(departure, 'platform');
     platform = platform && platform.length > 0 ? platform : getServiceTypeIcon(departure.serviceType);
 
-    const rowKey = `${departure.serviceUid}-${departure.locationDetail.crs}-${bookedDeparture}-${index}`;
+    const rowKey = `${departure.serviceID}-${scheduledDeparture}-${index}`;
+    const detailsRowKey = `${rowKey}-details`;
 
-    return (
-      <IonRow key={rowKey}>
-        <IonCol className='ion-text-center'>
-          <div className='mild-delay'>
-            {formatTime(bookedDeparture)}
-          </div>
-        </IonCol>
-        <IonCol className="ion-text-center">
-          <div className='mild-delay'>
-            Unknown
-          </div>
-        </IonCol>
-        <IonCol className='ion-text-center'>
-          <div className='mild-delay'>
-            {formatTime(bookedArrival)}
-          </div>
-        </IonCol>
-        <IonCol className='ion-text-center'>
-          <div className={getServiceTypeClass(departure.serviceType)}>
-            {platform}
-          </div>
-        </IonCol>
-      </IonRow>
-    )
+    // For planned journeys, where a destination is specified
+    if (!showDestination) {
+      const isBus = departure.serviceType === 'bus' || _.get(departure, 'platform') === 'BUS';
+      return (
+        <>
+          <IonRow key={rowKey}>
+            <IonCol className='ion-text-center'>
+              <div className='mild-delay'>
+                Unknown
+              </div>
+            </IonCol>
+            {isBus ? (
+              <IonCol size='8' className='ion-text-center bus-label-col'>
+                <div className='bus-label'>
+                  <IonIcon icon={bus} style={{ fontSize: '16px' }} />
+                  Bus
+                </div>
+              </IonCol>
+            ) : (
+              <>
+                <IonCol className="ion-text-center">
+                  <div className='mild-delay'>
+                    Unknown
+                  </div>
+                </IonCol>
+                <IonCol className='ion-text-center'>
+                  <div className={getServiceTypeClass(departure.serviceType)} style={getPlatformStyle(departure.platform)}>
+                    {platform}
+                  </div>
+                </IonCol>
+              </>
+            )}
+          </IonRow>
+          <IonRow key={detailsRowKey}>
+            <IonCol size='12' className='ion-text-center'>
+              <div className='departure-details'>
+                {formatDepartureDetails(departure)}
+              </div>
+            </IonCol>
+          </IonRow>
+        </>
+      )
+    }
+    // For nearby station departures, where no destination is specified
+    else {
+      const isBus = departure.serviceType === 'bus' || _.get(departure, 'platform') === 'BUS';
+      return (
+        <>
+          <IonRow key={rowKey}>
+            <IonCol size='4' className='ion-text-center'>
+              <div className='mild-delay'>
+                {scheduledDeparture}
+              </div>
+            </IonCol>
+            <IonCol className='destination'>
+              {_.get(departure, 'destination.locationName') || _.get(departure, 'destination[0].locationName', '')}
+            </IonCol>
+            {isBus ? (
+              <IonCol size='8' className='ion-text-center bus-label-col'>
+                <div className='bus-label'>
+                  <IonIcon icon={bus} style={{ fontSize: '16px' }} />
+                  Bus
+                </div>
+              </IonCol>
+            ) : (
+              <IonCol size='3' className='ion-text-center'>
+                <div className={getServiceTypeClass(departure.serviceType)} style={getPlatformStyle(departure.platform)}>
+                  {platform}
+                </div>
+              </IonCol>
+            )}
+          </IonRow>
+          <IonRow key={detailsRowKey}>
+            <IonCol size='12' className='ion-text-center'>
+              <div className='departure-details'>
+                {formatDepartureDetails(departure)}
+              </div>
+            </IonCol>
+          </IonRow>
+        </>
+      )
+    }
   }
 
   function getServiceTypeClass(serviceType: string) {
@@ -294,55 +533,392 @@ const Departures: React.FC<ContainerProps> = ({ from, to, editMode }) => {
     }
   }
 
-  function formatTime(time: string) {
-    // Return a 4 digit time string in the format HH:MM
-    if (time && time.length === 4)
-      return time.slice(0, 2) + ':' + time.slice(2);
-    else
-      return time;
+  // Get platform class with color coding if enabled
+  function getPlatformClassWithColor(platform: string) {
+    const baseClass = getPlatformClass(platform);
+    if (platformColorEnabled && platform && platform !== 'TBC' && platform !== 'BUS') {
+      const color = getPlatformColor(platform);
+      return `${baseClass} platform-colored`;
+    }
+    return baseClass;
   }
+
+  // Get platform style with color coding if enabled
+  function getPlatformStyle(platform: string) {
+    if (platformColorEnabled && platform && platform !== 'TBC' && platform !== 'BUS') {
+      const color = getPlatformColor(platform);
+      return { backgroundColor: color, color: '#000000' };
+    }
+    return {};
+  }
+
+  async function handleRemoveFavorite(both: boolean = false) {
+    if (both) {
+      await toggleJourneyFavoriteBothWays(from, to);
+    } else {
+      await toggleJourneyFavorite(from, to);
+    }
+    if (onToggleFavorite) {
+      onToggleFavorite();
+    }
+  }
+
+  async function handleAddFavorite(both: boolean = false) {
+    if (both) {
+      await toggleJourneyFavoriteBothWays(from, to);
+    } else {
+      await toggleJourneyFavorite(from, to);
+    }
+    if (onToggleFavorite) {
+      onToggleFavorite();
+    }
+  }
+
+  // Always initialize platformColorEnabled from preferences on mount
+  useEffect(() => {
+    async function fetchPlatformColor() {
+      const platformColor = await getPreferenceBoolean('platformColourEnabled', false);
+      setPlatformColorEnabled(platformColor);
+    }
+    fetchPlatformColor();
+    // Listen for preferencesChanged event to update platformColorEnabled
+    const handlePreferencesChanged = async () => {
+      const platformColor = await getPreferenceBoolean('platformColourEnabled', false);
+      setPlatformColorEnabled(platformColor);
+    };
+    window.addEventListener('preferencesChanged', handlePreferencesChanged);
+    return () => {
+      window.removeEventListener('preferencesChanged', handlePreferencesChanged);
+    };
+  }, []);
 
   useEffect(() => {
     if (!initialised) {
       init();
     }
-  }, [departures, arrivals]);
+    // Check for return leg
+    (async () => {
+      if (from && to) {
+        setReturnLegExists(await hasReturnLeg(from, to));
+      } else {
+        setReturnLegExists(false);
+      }
+    })();
+  }, [departures, from, to]);
+
+  // Check if any departure is a bus service
+  function hasBusService(departures: any[]) {
+    return departures.some(departure => {
+      const serviceType = _.get(departure, 'serviceType');
+      const platform = _.get(departure, 'platform');
+      return serviceType === 'bus' || platform === 'BUS';
+    });
+  }
+
+  // Show bus service warning if any departure is a bus
+  function showBusServiceWarning(departures: any[]) {
+    if (hasBusService(departures)) {
+      return (
+        <div style={{ 
+          backgroundColor: '#fff3cd', 
+          color: '#856404', 
+          padding: '8px 12px', 
+          marginBottom: '8px', 
+          borderRadius: '4px', 
+          border: '1px solid #ffeaa7',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <IonIcon icon={bus} style={{ fontSize: '16px' }} />
+          <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
+            Replacement bus service in operation
+          </span>
+        </div>
+      );
+    }
+    return null;
+  }
 
   if (departures && departures.length > 0) {
-    return (
-      <IonCard>
-        <IonCardHeader>
-          <IonCardTitle>
-            {getStationNameFromCrs(from)} to {getStationNameFromCrs(to)}
-          </IonCardTitle>
-        </IonCardHeader>
-        <IonCardContent>
-          <IonGrid>
-            <IonRow key={headerRowKey}>
-              <IonCol className='ion-text-center'>
-                Departing
-              </IonCol>
-              <IonCol className='ion-text-center'>
-                Delay
-              </IonCol>
-              <IonCol className='ion-text-center'>
-                Arrival
-              </IonCol>
-              <IonCol className='ion-text-center'>
-                Platform
-              </IonCol>
-            </IonRow>
-            {showDepartures(departures as any[])}
-            <DeleteJourneyButton from={from} to={to} editMode={editMode} />
-            <AddReturnJourneyButton from={from} to={to} editMode={editMode} />
-          </IonGrid>
-        </IonCardContent>
-      </IonCard>
-    );
+    if (to && to.length > 0) {
+      return (
+        <IonCard>
+          <IonCardHeader>
+            <IonCardTitle>
+              {getStationNameFromCrs(from)} to {getStationNameFromCrs(to)}
+              {isFavorite ? (
+                <IonIcon 
+                  icon={star} 
+                  color="warning" 
+                  style={{ marginLeft: '8px', cursor: 'pointer' }} 
+                  onClick={async () => {
+                    if (returnLegExists) {
+                      setShowBothLegsAlert('remove');
+                    } else {
+                      setShowRemoveFavoriteAlert(true);
+                    }
+                  }}
+                />
+              ) : (
+                <IonIcon 
+                  icon={starOutline} 
+                  color="medium" 
+                  style={{ marginLeft: '8px', cursor: 'pointer' }} 
+                  onClick={async () => {
+                    if (returnLegExists) {
+                      setShowBothLegsAlert('add');
+                    } else {
+                      setShowAddFavoriteAlert(true);
+                    }
+                  }}
+                />
+              )}
+            </IonCardTitle>
+          </IonCardHeader>
+          <IonCardContent>
+            {showBusServiceWarning(departures)}
+            <IonGrid>
+              <IonRow key={headerRowKey}>
+                <IonCol className='ion-text-center'>
+                  Estimated
+                </IonCol>
+                <IonCol className='ion-text-center'>
+                  Length
+                </IonCol>
+                <IonCol className='ion-text-center'>
+                  Platform
+                </IonCol>
+              </IonRow>
+              {showDepartures(departures as any[], to)}
+              <DeleteJourneyButton from={from} to={to} editMode={editMode} />
+              <AddReturnJourneyButton from={from} to={to} editMode={editMode} />
+              <ToggleFavoriteButton
+                from={from}
+                to={to}
+                editMode={editMode}
+                isFavorite={isFavorite}
+                onToggle={onToggleFavorite}
+              />
+            </IonGrid>
+          </IonCardContent>
+          <IonAlert
+            isOpen={showRemoveFavoriteAlert}
+            onDidDismiss={() => setShowRemoveFavoriteAlert(false)}
+            header="Remove from Favorites"
+            message={`Are you sure you want to remove \"${getStationNameFromCrs(from)}${to ? ` to ${getStationNameFromCrs(to)}` : ''}\" from your favorites?`}
+            buttons={[
+              {
+                text: 'Cancel',
+                role: 'cancel',
+                handler: () => setShowRemoveFavoriteAlert(false)
+              },
+              {
+                text: 'Remove',
+                role: 'destructive',
+                handler: () => {
+                  handleRemoveFavorite();
+                  setShowRemoveFavoriteAlert(false);
+                }
+              }
+            ]}
+          />
+          <IonAlert
+            isOpen={showAddFavoriteAlert}
+            onDidDismiss={() => setShowAddFavoriteAlert(false)}
+            header="Add to Favorites"
+            message={`Are you sure you want to add \"${getStationNameFromCrs(from)}${to ? ` to ${getStationNameFromCrs(to)}` : ''}\" to your favorites?`}
+            buttons={[
+              {
+                text: 'Cancel',
+                role: 'cancel',
+                handler: () => setShowAddFavoriteAlert(false)
+              },
+              {
+                text: 'Add',
+                handler: () => {
+                  handleAddFavorite();
+                  setShowAddFavoriteAlert(false);
+                }
+              }
+            ]}
+          />
+          <IonAlert
+            isOpen={!!showBothLegsAlert}
+            onDidDismiss={() => setShowBothLegsAlert(null)}
+            header={showBothLegsAlert === 'add' ? 'Add to Favorites' : 'Remove from Favorites'}
+            message={`Would you like to ${showBothLegsAlert === 'add' ? 'add' : 'remove'} just this journey or both this journey (${getStationNameFromCrs(from)}${to ? ` to ${getStationNameFromCrs(to)}` : ''}) and its return leg (${getStationNameFromCrs(to)}${to ? ` to ${getStationNameFromCrs(from)}` : ''})?`}
+            buttons={[
+              {
+                text: showBothLegsAlert === 'add' ? 'Add both journeys' : 'Remove both journeys',
+                handler: () => {
+                  if (showBothLegsAlert === 'add') handleAddFavorite(true);
+                  else handleRemoveFavorite(true);
+                  setShowBothLegsAlert(null);
+                }
+              },
+              {
+                text: showBothLegsAlert === 'add' ? 'Add this journey only' : 'Remove this journey only',
+                handler: () => {
+                  if (showBothLegsAlert === 'add') handleAddFavorite(false);
+                  else handleRemoveFavorite(false);
+                  setShowBothLegsAlert(null);
+                }
+              },
+              {
+                text: 'Cancel',
+                role: 'cancel',
+                handler: () => setShowBothLegsAlert(null)
+              }
+            ]}
+          />
+        </IonCard>
+      )
+    }
+    else {
+      return (
+        <IonCard>
+          <IonCardHeader>
+            <IonCardTitle style={{ fontSize: '10px' }}>
+              {getStationNameFromCrs(from)}
+              {isFavorite ? (
+                <IonIcon 
+                  icon={star} 
+                  color="warning" 
+                  style={{ marginLeft: '8px', cursor: 'pointer' }} 
+                  onClick={async () => {
+                    if (returnLegExists) {
+                      setShowBothLegsAlert('remove');
+                    } else {
+                      setShowRemoveFavoriteAlert(true);
+                    }
+                  }}
+                />
+              ) : (
+                <IonIcon 
+                  icon={starOutline} 
+                  color="medium" 
+                  style={{ marginLeft: '8px', cursor: 'pointer' }} 
+                  onClick={async () => {
+                    if (returnLegExists) {
+                      setShowBothLegsAlert('add');
+                    } else {
+                      setShowAddFavoriteAlert(true);
+                    }
+                  }}
+                />
+              )}
+            </IonCardTitle>
+          </IonCardHeader>
+          <IonCardContent>
+            {showBusServiceWarning(departures)}
+            <IonGrid>
+              <IonRow key={headerRowKey}>
+                <IonCol size='3' className='ion-text-center'>
+                  Departing
+                </IonCol>
+                <IonCol className='destination'>
+                  Destination
+                </IonCol>
+                <IonCol size='3' className='ion-text-center'>
+                  Platform
+                </IonCol>
+              </IonRow>
+              {showDepartures(departures as any[], to)}
+              <DeleteJourneyButton from={from} to={to} editMode={editMode} />
+              <AddReturnJourneyButton from={from} to={to} editMode={editMode} />
+              <ToggleFavoriteButton
+                from={from}
+                to={to}
+                editMode={editMode}
+                isFavorite={isFavorite}
+                onToggle={onToggleFavorite}
+              />
+            </IonGrid>
+          </IonCardContent>
+          <IonAlert
+            isOpen={showRemoveFavoriteAlert}
+            onDidDismiss={() => setShowRemoveFavoriteAlert(false)}
+            header="Remove from Favorites"
+            message={`Are you sure you want to remove \"${getStationNameFromCrs(from)}\" from your favorites?`}
+            buttons={[
+              {
+                text: 'Cancel',
+                role: 'cancel',
+                handler: () => setShowRemoveFavoriteAlert(false)
+              },
+              {
+                text: 'Remove',
+                role: 'destructive',
+                handler: () => {
+                  handleRemoveFavorite();
+                  setShowRemoveFavoriteAlert(false);
+                }
+              }
+            ]}
+          />
+          <IonAlert
+            isOpen={showAddFavoriteAlert}
+            onDidDismiss={() => setShowAddFavoriteAlert(false)}
+            header="Add to Favorites"
+            message={`Are you sure you want to add \"${getStationNameFromCrs(from)}\" to your favorites?`}
+            buttons={[
+              {
+                text: 'Cancel',
+                role: 'cancel',
+                handler: () => setShowAddFavoriteAlert(false)
+              },
+              {
+                text: 'Add',
+                handler: () => {
+                  handleAddFavorite();
+                  setShowAddFavoriteAlert(false);
+                }
+              }
+            ]}
+          />
+          <IonAlert
+            isOpen={!!showBothLegsAlert}
+            onDidDismiss={() => setShowBothLegsAlert(null)}
+            header={showBothLegsAlert === 'add' ? 'Add to Favorites' : 'Remove from Favorites'}
+            message={`Would you like to ${showBothLegsAlert === 'add' ? 'add' : 'remove'} just this journey or both this journey (${getStationNameFromCrs(from)}${to ? ` to ${getStationNameFromCrs(to)}` : ''}) and its return leg (${getStationNameFromCrs(to)}${to ? ` to ${getStationNameFromCrs(from)}` : ''})?`}
+            buttons={[
+              {
+                text: showBothLegsAlert === 'add' ? 'Add both journeys' : 'Remove both journeys',
+                handler: () => {
+                  if (showBothLegsAlert === 'add') handleAddFavorite(true);
+                  else handleRemoveFavorite(true);
+                  setShowBothLegsAlert(null);
+                }
+              },
+              {
+                text: showBothLegsAlert === 'add' ? 'Add this journey only' : 'Remove this journey only',
+                handler: () => {
+                  if (showBothLegsAlert === 'add') handleAddFavorite(false);
+                  else handleRemoveFavorite(false);
+                  setShowBothLegsAlert(null);
+                }
+              },
+              {
+                text: 'Cancel',
+                role: 'cancel',
+                handler: () => setShowBothLegsAlert(null)
+              }
+            ]}
+          />
+        </IonCard>
+      )
+    }
   }
   else {
     return (
-      <NoDeparturesFound from={from} to={to} editMode={editMode} />
+      <NoDeparturesFound 
+        from={from} 
+        to={to} 
+        editMode={editMode}
+        isFavorite={isFavorite}
+        onToggleFavorite={onToggleFavorite}
+      />
     )
   }
 }

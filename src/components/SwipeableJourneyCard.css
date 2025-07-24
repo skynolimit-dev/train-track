@@ -1,0 +1,65 @@
+.swipeable-card-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 8px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.swipeable-card {
+  position: relative;
+  z-index: 2;
+  background: white;
+  border-radius: 8px;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.delete-button-background {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 80px;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 1;
+  border-radius: 0 8px 8px 0;
+}
+
+.delete-button-background ion-icon {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.delete-button-background span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Ensure the card has proper styling */
+.swipeable-card ion-card {
+  margin: 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Smooth transitions for swipe animations */
+.swipeable-card {
+  will-change: transform;
+}
+
+/* Prevent text selection during swipe */
+.swipeable-card * {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+} 

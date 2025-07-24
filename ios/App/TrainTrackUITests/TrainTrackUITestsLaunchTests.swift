@@ -15,6 +15,8 @@ final class TrainTrackUITestsLaunchTests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
+        // Force portrait orientation for all tests
+        XCUIDevice.shared.orientation = .portrait
     }
 
     @MainActor
